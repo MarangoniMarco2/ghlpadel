@@ -1,4 +1,4 @@
-// netlify/functions/get-availability.js - VERSIONE LOCATION API
+// netlify/functions/get-availability.js - VERSIONE CORRETTA COMPLETA
 exports.handler = async (event, context) => {
   // Headers CORS
   const headers = {
@@ -7,11 +7,13 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Content-Type': 'application/json'
   };
-  // Funzione per convertire data in timestamp Unix
-    function dateToTimestamp(dateString) {
-      const date = new Date(dateString);
-      return date.getTime(); // Restituisce millisecondi
-    }
+
+  // Funzione per convertire data in timestamp
+  function dateToTimestamp(dateString) {
+    const date = new Date(dateString);
+    return date.getTime();
+  }
+
   // Gestisci preflight OPTIONS
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
@@ -31,17 +33,16 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Per Location API
-    const LOCATION_API_KEY = process.env.LOCATION_API_KEY;
-    const LOCATION_ID = process.env.GHL_LOCATION_ID;
+    // Environment variables
+    const PRIVATE_INTEGRATION_TOKEN = process.env.PRIVATE_INTEGRATION_TOKEN;
 
-    if (!LOCATION_API_KEY) {
+    if (!PRIVATE_INTEGRATION_TOKEN) {
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({ 
-          error: 'LOCATION_API_KEY mancante',
-          details: 'Configura LOCATION_API_KEY nelle environment variables'
+          error: 'PRIVATE_INTEGRATION_TOKEN mancante',
+          details: 'Configura PRIVATE_INTEGRATION_TOKEN nelle environment variables'
         })
       };
     }
@@ -51,19 +52,20 @@ exports.handler = async (event, context) => {
 
     // Converti le date in timestamp
     const startTimestamp = dateToTimestamp(startDate);
-    const finalEndTimestamp = dateToTimestamp(finalEndDate);
+    const endTimestamp = dateToTimestamp(finalEndDate);
+
+    // API v2 endpoint senza locationId
+    const apiUrl = `https://services.leadconnectorhq.com/calendars/${calendarId}/free-slots?startDate=${startTimestamp}&endDate=${endTimestamp}`;
     
-    // URL con timestamp invece di stringhe
-    const apiUrl = `https://services.leadconnectorhq.com/calendars/${calendarId}/free-slots?startDate=${startTimestamp}&endDate=${finalEndTimestamp}`;
-    
-    console.log('Chiamata availability a:', apiUrl);
+    console.log('Chiamata availability API v2 a:', apiUrl);
 
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOCATION_API_KEY}`
+        'Authorization': `Bearer ${PRIVATE_INTEGRATION_TOKEN}`,
+        'Version': '2021-07-28'
       }
     });
 
@@ -77,38 +79,37 @@ exports.handler = async (event, context) => {
         statusCode: response.status,
         headers,
         body: JSON.stringify({ 
-          error: `Location API Error: ${response.status} ${response.statusText}`,
+          error: `API v2 Error: ${response.status} ${response.statusText}`,
           details: errorText,
           endpoint: apiUrl
         })
       };
     }
 
-    const data = await response.json();
-    console.log('Slots trovati:', data.slots?.length || 0);
+    const responseData = await response.json();
+    console.log('Risposta completa API:', JSON.stringify(responseData, null, 2));
 
-    return // Subito dopo aver ricevuto la risposta, aggiungi questo debug:
-// ✅ USA QUESTO (un solo 'data'):
-const responseData = await response.json();
-console.log('Risposta completa API:', JSON.stringify(responseData, null, 2));
-console.log('Slots trovati:', responseData.slots?.length || 0);
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({
+        originalResponse: responseData,
+        slots: responseData.slots || [],
+        _debug: {
+          apiType: 'API v2 - Private Integration',
+          endpoint: apiUrl,
+          slotsCount: responseData.slots?.length || 0,
+          calendarId,
+          dateRange: `${startDate} -> ${finalEndDate}`,
+          version: '2021-07-28',
+          timestamps: {
+            start: startTimestamp,
+            end: endTimestamp
+          }
+        }
+      })
+    };
 
-return {
-  statusCode: 200,
-  headers,
-  body: JSON.stringify({
-    originalResponse: responseData, // Per vedere cosa restituisce veramente l'API
-    slots: responseData.slots || [],
-    _debug: {
-      apiType: 'API v2 - Private Integration',
-      endpoint: apiUrl,
-      slotsCount: responseData.slots?.length || 0,
-      calendarId,
-      dateRange: `${startDate} -> ${finalEndDate}`,
-      version: '2021-07-28'
-    }
-  })
-};
   } catch (error) {
     console.error('Errore get-availability:', error);
     
@@ -117,7 +118,8 @@ return {
       headers,
       body: JSON.stringify({ 
         error: 'Errore interno del server',
-        details: error.message
+        details: error.message,
+        stack: error.stack
       })
     };
   }
