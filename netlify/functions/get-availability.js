@@ -89,27 +89,37 @@ exports.handler = async (event, context) => {
     const responseData = await response.json();
     console.log('Risposta completa API:', JSON.stringify(responseData, null, 2));
 
-    return {
-      statusCode: 200,
-      headers,
-      body: JSON.stringify({
-        originalResponse: responseData,
-        slots: responseData.slots || [],
-        _debug: {
-          apiType: 'API v2 - Private Integration',
-          endpoint: apiUrl,
-          slotsCount: responseData.slots?.length || 0,
-          calendarId,
-          dateRange: `${startDate} -> ${finalEndDate}`,
-          version: '2021-07-28',
-          timestamps: {
-            start: startTimestamp,
-            end: endTimestamp
-          }
-        }
-      })
-    };
+    // ✅ Processa correttamente il formato GHL:
+// Estrai tutti gli slot da tutte le date
+const allSlots = [];
+Object.keys(responseData).forEach(dateKey => {
+  // Ignora chiavi di sistema come 'traceId'
+  if (responseData[dateKey] && responseData[dateKey].slots) {
+    allSlots.push(...responseData[dateKey].slots);
+  }
+});
 
+return {
+  statusCode: 200,
+  headers,
+  body: JSON.stringify({
+    slots: allSlots, // ✅ Array di slot da tutte le date
+    dates: responseData, // ✅ Formato originale per debug
+    _debug: {
+      apiType: 'API v2 - Private Integration',
+      endpoint: apiUrl,
+      slotsCount: allSlots.length,
+      calendarId,
+      dateRange: `${startDate} -> ${finalEndDate}`,
+      version: '2021-07-28',
+      timestamps: {
+        start: startTimestamp,
+        end: endTimestamp
+      },
+      datesFound: Object.keys(responseData).filter(key => key !== 'traceId')
+    }
+  })
+};
   } catch (error) {
     console.error('Errore get-availability:', error);
     
