@@ -14,8 +14,8 @@ exports.handler = async (event, context) => {
 
   try {
     // Configurazione (SOSTITUISCI CON I TUOI DATI)
-    const GHL_TOKEN = process.env.GHL_TOKEN;
-    const LOCATION_ID = process.env.GHL_LOCATION_ID;
+    const GHL_TOKEN = process.env.eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJsb2NhdGlvbl9pZCI6InFNTXk0T0twQTZvUWRreVB4YmhHIiwidmVyc2lvbiI6MSwiaWF0IjoxNzU3MTYxNjcwNTU0LCJzdWIiOiJ2bmduNnI5TEFnZ2pvZW80ZUlyYyJ9.UzucE7hf6B5eJN9PIN9Ud8YY38b4WFe6z9t3swMCpq8;
+    const LOCATION_ID = process.env.qMMy4OKpA6oQdkyPxbhG;
 
     if (!GHL_TOKEN || !LOCATION_ID) {
       return {
