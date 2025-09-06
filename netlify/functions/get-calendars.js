@@ -1,4 +1,4 @@
-// netlify/functions/get-calendars.js - VERSIONE API v2 CORRETTA
+// netlify/functions/get-calendars.js - VERSIONE API v2 CON LOCATION ID
 exports.handler = async (event, context) => {
   // Headers CORS
   const headers = {
@@ -14,12 +14,15 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Per API v2 usi Private Integration Token (non più API Key)
+    // Environment variables
     const PRIVATE_INTEGRATION_TOKEN = process.env.PRIVATE_INTEGRATION_TOKEN;
+    const LOCATION_ID = process.env.GHL_LOCATION_ID;
 
     console.log('API v2 check:');
     console.log('- PRIVATE_INTEGRATION_TOKEN exists:', !!PRIVATE_INTEGRATION_TOKEN);
+    console.log('- LOCATION_ID exists:', !!LOCATION_ID);
     console.log('- Token length:', PRIVATE_INTEGRATION_TOKEN ? PRIVATE_INTEGRATION_TOKEN.length : 0);
+    console.log('- Location ID:', LOCATION_ID);
 
     if (!PRIVATE_INTEGRATION_TOKEN) {
       return {
@@ -33,8 +36,20 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // API v2 endpoint corretto
-    const apiUrl = `https://services.leadconnectorhq.com/calendars/`;
+    if (!LOCATION_ID) {
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ 
+          error: 'GHL_LOCATION_ID mancante',
+          details: 'Configura GHL_LOCATION_ID nelle environment variables',
+          instructions: 'Location ID si trova nell\'URL del tuo dashboard GHL'
+        })
+      };
+    }
+
+    // API v2 endpoint con locationId come query parameter
+    const apiUrl = `https://services.leadconnectorhq.com/calendars/?locationId=${LOCATION_ID}`;
     
     console.log('Chiamata API v2 a:', apiUrl);
 
@@ -61,7 +76,7 @@ exports.handler = async (event, context) => {
           error: `API v2 Error: ${response.status} ${response.statusText}`,
           details: errorText,
           endpoint: apiUrl,
-          suggestion: response.status === 401 ? 'Controlla il Private Integration Token' : 'Verifica permessi scopes'
+          suggestion: response.status === 403 ? 'Verifica che il Location ID sia corretto e che il token abbia i permessi calendars.readonly' : 'Controlla il Private Integration Token'
         })
       };
     }
@@ -78,7 +93,8 @@ exports.handler = async (event, context) => {
           apiType: 'API v2 - Private Integration',
           endpoint: apiUrl,
           calendarCount: data.calendars?.length || 0,
-          version: '2021-07-28'
+          version: '2021-07-28',
+          locationId: LOCATION_ID
         }
       })
     };
