@@ -7,7 +7,11 @@ exports.handler = async (event, context) => {
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Content-Type': 'application/json'
   };
-
+  // Funzione per convertire data in timestamp Unix
+    function dateToTimestamp(dateString) {
+      const date = new Date(dateString);
+      return date.getTime(); // Restituisce millisecondi
+    }
   // Gestisci preflight OPTIONS
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' };
