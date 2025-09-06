@@ -1,4 +1,4 @@
-// netlify/functions/get-calendars.js - VERSIONE LOCATION API
+// netlify/functions/get-calendars.js - VERSIONE API v2 CORRETTA
 exports.handler = async (event, context) => {
   // Headers CORS
   const headers = {
@@ -14,37 +14,37 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Per Location API usi solo il LOCATION API KEY
-    const LOCATION_API_KEY = process.env.LOCATION_API_KEY;
-    const LOCATION_ID = process.env.GHL_LOCATION_ID;
+    // Per API v2 usi Private Integration Token (non più API Key)
+    const PRIVATE_INTEGRATION_TOKEN = process.env.PRIVATE_INTEGRATION_TOKEN;
 
-    console.log('Location API check:');
-    console.log('- LOCATION_API_KEY exists:', !!LOCATION_API_KEY);
-    console.log('- LOCATION_API_KEY length:', LOCATION_API_KEY ? LOCATION_API_KEY.length : 0);
-    console.log('- LOCATION_ID:', LOCATION_ID);
+    console.log('API v2 check:');
+    console.log('- PRIVATE_INTEGRATION_TOKEN exists:', !!PRIVATE_INTEGRATION_TOKEN);
+    console.log('- Token length:', PRIVATE_INTEGRATION_TOKEN ? PRIVATE_INTEGRATION_TOKEN.length : 0);
 
-    if (!LOCATION_API_KEY) {
+    if (!PRIVATE_INTEGRATION_TOKEN) {
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({ 
-          error: 'LOCATION_API_KEY mancante',
-          details: 'Configura LOCATION_API_KEY nelle environment variables'
+          error: 'PRIVATE_INTEGRATION_TOKEN mancante',
+          details: 'Configura PRIVATE_INTEGRATION_TOKEN nelle environment variables',
+          instructions: 'In GHL: Settings > Private Integrations > Create Integration > Copy Token'
         })
       };
     }
 
-    // Endpoint per Location API (diverso!)
-    const apiUrl = `https://rest.gohighlevel.com/v1/calendars/`;
+    // API v2 endpoint corretto
+    const apiUrl = `https://services.leadconnectorhq.com/calendars/`;
     
-    console.log('Chiamata a:', apiUrl);
+    console.log('Chiamata API v2 a:', apiUrl);
 
     const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LOCATION_API_KEY}`
+        'Authorization': `Bearer ${PRIVATE_INTEGRATION_TOKEN}`,
+        'Version': '2021-07-28' // Versione API v2
       }
     });
 
@@ -58,9 +58,10 @@ exports.handler = async (event, context) => {
         statusCode: response.status,
         headers,
         body: JSON.stringify({ 
-          error: `Location API Error: ${response.status} ${response.statusText}`,
+          error: `API v2 Error: ${response.status} ${response.statusText}`,
           details: errorText,
-          endpoint: apiUrl
+          endpoint: apiUrl,
+          suggestion: response.status === 401 ? 'Controlla il Private Integration Token' : 'Verifica permessi scopes'
         })
       };
     }
@@ -74,9 +75,10 @@ exports.handler = async (event, context) => {
       body: JSON.stringify({
         calendars: data.calendars || [],
         _debug: {
-          apiType: 'Location API',
+          apiType: 'API v2 - Private Integration',
           endpoint: apiUrl,
-          calendarCount: data.calendars?.length || 0
+          calendarCount: data.calendars?.length || 0,
+          version: '2021-07-28'
         }
       })
     };
