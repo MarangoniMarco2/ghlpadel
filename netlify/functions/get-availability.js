@@ -49,9 +49,12 @@ exports.handler = async (event, context) => {
     // Usa endDate se fornito, altrimenti usa startDate
     const finalEndDate = endDate || startDate;
 
-    // Endpoint per Location API
-    // CORRETTO (nuovo endpoint API v2):
-    const apiUrl = `https://services.leadconnectorhq.com/calendars/${calendarId}/free-slots?startDate=${startDate}&endDate=${finalEndDate}`;
+    // Converti le date in timestamp
+    const startTimestamp = dateToTimestamp(startDate);
+    const finalEndTimestamp = dateToTimestamp(finalEndDate);
+    
+    // URL con timestamp invece di stringhe
+    const apiUrl = `https://services.leadconnectorhq.com/calendars/${calendarId}/free-slots?startDate=${startTimestamp}&endDate=${finalEndTimestamp}`;
     
     console.log('Chiamata availability a:', apiUrl);
 
