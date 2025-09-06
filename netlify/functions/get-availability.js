@@ -45,7 +45,8 @@ exports.handler = async (event, context) => {
     const finalEndDate = endDate || startDate;
 
     // Endpoint per Location API
-    const apiUrl = `https://rest.gohighlevel.com/v1/calendars/${calendarId}/free-slots?startDate=${startDate}&endDate=${finalEndDate}`;
+    // CORRETTO (nuovo endpoint API v2):
+    const apiUrl = `https://services.leadconnectorhq.com/calendars/${calendarId}/free-slots?locationId=${LOCATION_ID}&startDate=${startDate}&endDate=${finalEndDate}`;
     
     console.log('Chiamata availability a:', apiUrl);
 
