@@ -88,20 +88,21 @@ exports.handler = async (event, context) => {
     console.log('Slots trovati:', data.slots?.length || 0);
 
     return // Subito dopo aver ricevuto la risposta, aggiungi questo debug:
-const data = await response.json();
-console.log('Risposta completa API:', JSON.stringify(data, null, 2));
+// ✅ USA QUESTO (un solo 'data'):
+const responseData = await response.json();
+console.log('Risposta completa API:', JSON.stringify(responseData, null, 2));
+console.log('Slots trovati:', responseData.slots?.length || 0);
 
-// Poi restituisci la risposta completa per analizzarla:
 return {
   statusCode: 200,
   headers,
   body: JSON.stringify({
-    originalResponse: data, // ✅ Aggiungi questo per vedere cosa restituisce veramente
-    slots: data.slots || [],
+    originalResponse: responseData, // Per vedere cosa restituisce veramente l'API
+    slots: responseData.slots || [],
     _debug: {
       apiType: 'API v2 - Private Integration',
       endpoint: apiUrl,
-      slotsCount: data.slots?.length || 0,
+      slotsCount: responseData.slots?.length || 0,
       calendarId,
       dateRange: `${startDate} -> ${finalEndDate}`,
       version: '2021-07-28'
