@@ -46,7 +46,7 @@ exports.handler = async (event, context) => {
 
     // Endpoint per Location API
     // CORRETTO (nuovo endpoint API v2):
-    const apiUrl = `https://services.leadconnectorhq.com/calendars/${calendarId}/free-slots?locationId=${LOCATION_ID}&startDate=${startDate}&endDate=${finalEndDate}`;
+    const apiUrl = `https://services.leadconnectorhq.com/calendars/${calendarId}/free-slots?locationId=${GHL_LOCATION_ID}&startDate=${startDate}&endDate=${finalEndDate}`;
     
     console.log('Chiamata availability a:', apiUrl);
 
