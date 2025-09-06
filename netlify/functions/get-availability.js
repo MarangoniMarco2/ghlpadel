@@ -1,3 +1,4 @@
+// netlify/functions/get-availability.js - VERSIONE LOCATION API
 exports.handler = async (event, context) => {
   // Headers CORS
   const headers = {
@@ -26,16 +27,16 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Configurazione
-    const GHL_TOKEN = process.env.GHL_TOKEN;
-    const LOCATION_ID = process.env.GHL_LOCATION_ID;
+    // Per Location API
+    const LOCATION_API_KEY = process.env.LOCATION_API_KEY;
 
-    if (!GHL_TOKEN || !LOCATION_ID) {
+    if (!LOCATION_API_KEY) {
       return {
         statusCode: 500,
         headers,
         body: JSON.stringify({ 
-          error: 'Configurazione mancante: GHL_TOKEN o GHL_LOCATION_ID' 
+          error: 'LOCATION_API_KEY mancante',
+          details: 'Configura LOCATION_API_KEY nelle environment variables'
         })
       };
     }
@@ -43,26 +44,53 @@ exports.handler = async (event, context) => {
     // Usa endDate se fornito, altrimenti usa startDate
     const finalEndDate = endDate || startDate;
 
-    // Chiamata API a GHL per gli slot liberi
-    const response = await fetch(`https://services.leadconnectorhq.com/calendars/${calendarId}/free-slots?startDate=${startDate}&endDate=${finalEndDate}`, {
+    // Endpoint per Location API
+    const apiUrl = `https://rest.gohighlevel.com/v1/calendars/${calendarId}/free-slots?startDate=${startDate}&endDate=${finalEndDate}`;
+    
+    console.log('Chiamata availability a:', apiUrl);
+
+    const response = await fetch(apiUrl, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Version': '2021-04-15',
-        'Authorization': `Bearer ${GHL_TOKEN}`
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LOCATION_API_KEY}`
       }
     });
 
+    console.log('Risposta availability:', response.status, response.statusText);
+
     if (!response.ok) {
-      throw new Error(`GHL API Error: ${response.status} ${response.statusText}`);
+      const errorText = await response.text();
+      console.log('Errore availability body:', errorText);
+      
+      return {
+        statusCode: response.status,
+        headers,
+        body: JSON.stringify({ 
+          error: `Location API Error: ${response.status} ${response.statusText}`,
+          details: errorText,
+          endpoint: apiUrl
+        })
+      };
     }
 
     const data = await response.json();
+    console.log('Slots trovati:', data.slots?.length || 0);
 
     return {
       statusCode: 200,
       headers,
-      body: JSON.stringify(data)
+      body: JSON.stringify({
+        slots: data.slots || [],
+        _debug: {
+          apiType: 'Location API',
+          endpoint: apiUrl,
+          slotsCount: data.slots?.length || 0,
+          calendarId,
+          dateRange: `${startDate} -> ${finalEndDate}`
+        }
+      })
     };
 
   } catch (error) {
@@ -73,7 +101,7 @@ exports.handler = async (event, context) => {
       headers,
       body: JSON.stringify({ 
         error: 'Errore interno del server',
-        details: error.message 
+        details: error.message
       })
     };
   }
